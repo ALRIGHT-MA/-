@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Way of Truth - 作品集演讲系统 (红魂终极版)</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body, html {
+            height: 100%;
+            background-color: #000000;
+            color: #ffffff;
+            font-family: 'Segoe UI', Roboto, 'Microsoft YaHei', sans-serif;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        /* 1. 开场动画全屏覆盖层 */
+        #splash-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: #000000;
+            z-index: 9999;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #splash-screen img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        /* 瞬间隐藏，没有任何过度 */
+        #splash-screen.fade-out {
+            display: none !important;
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+        }
+
+        /* 2. 全局机械边框背景 - 网页打开直接展示，不需要任何动画 */
+        .dynamic-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: url('background.gif.gif') no-repeat center center fixed;
+            background-size: cover;
+            z-index: 1; /* 背景层级置于底层框架上 */
+        }
+
+        /* 3. PPT 幻灯片群容器 - 完美叠加在背景之上 */
+        .slide-container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+            z-index: 2; /* 确保内容在背景图之上的独立图层播放 */
+        }
+
+        .slide {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1), transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            transform: scale(0.97);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .slide.active {
+            opacity: 1;
+            visibility: visible;
+            transform: scale(1);
+        }
+
+        /* 专门针对主图 PNG 的渐显效果：只有当开场动画结束或翻页时，才执行渐显 */
+        .slide.active img {
+            animation: pngFadeIn 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+        }
+
+        @keyframes pngFadeIn {
+            0% {
+                opacity: 0;
+                transform: scale(0.96);
+            }
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        /* PPT 展示主图基础样式 */
+        .slide img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover; /* 完美铺满拉伸，确保与背景贴合 */
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+            opacity: 0; /* 默认隐藏，等待上面的 active 动画触发渐显 */
+        }
+
+        /* 4. 底部页码指示器 (高亮霓虹红) */
+        .slide-counter {
+            position: absolute;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(20, 4, 4, 0.9);
+            padding: 6px 22px;
+            border-radius: 20px;
+            border: 1px solid #ff2a2a;
+            font-size: 14px;
+            letter-spacing: 2px;
+            color: #ff4d4d;
+            text-shadow: 0 0 8px rgba(255, 42, 42, 0.8);
+            z-index: 10;
+        }
+
+        /* 5. 右下角交互按钮 (高亮霓虹红) */
+        .controls {
+            position: absolute;
+            bottom: 35px;
+            right: 60px;
+            display: flex;
+            gap: 15px;
+            z-index: 10;
+        }
+
+        .btn {
+            background: rgba(20, 4, 4, 0.9);
+            border: 1px solid #ff2a2a;
+            color: #ff4d4d;
+            padding: 10px 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 14px;
+            letter-spacing: 1px;
+            transition: all 0.2s ease;
+            box-shadow: 0 0 10px rgba(255, 42, 42, 0.3);
+            text-shadow: 0 0 5px rgba(255, 42, 42, 0.5);
+        }
+
+        .btn:hover {
+            background: #ff2a2a;
+            color: #ffffff;
+            box-shadow: 0 0 20px #ff2a2a;
+            transform: translateY(-2px);
+            text-shadow: none;
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn:disabled {
+            border-color: #401010;
+            color: #602525;
+            cursor: not-allowed;
+            box-shadow: none;
+            background: rgba(15, 5, 5, 0.7);
+            text-shadow: none;
+        }
+
+        /* 左下角操作提示 */
+        .keyboard-tip {
+            position: absolute;
+            bottom: 45px;
+            left: 60px;
+            font-size: 12px;
+            color: rgba(255, 60, 60, 0.6);
+            z-index: 10;
+            pointer-events: none;
+            letter-spacing: 1px;
+            text-shadow: 0 0 4px rgba(0, 0, 0, 0.8);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="splash-screen">
+        <img src="opening.gif.gif" alt="Opening">
+    </div>
+
+    <div class="dynamic-bg"></div>
+
+    <div class="slide-container">
+        
+        <div class="slide" id="first-slide">
+            <img src="Frame 1.png" alt="Slide 1">
+        </div>
+
+        <div class="slide">
+            <img src="Frame 2.png" alt="Slide 2">
+        </div>
+
+        <div class="slide">
+            <img src="Frame 3 (1).png" alt="Slide 3">
+        </div>
+
+        <div class="slide">
+            <img src="Frame 4 (1).png" alt="Slide 4">
+        </div>
+
+        <div class="slide">
+            <img src="Frame 5 (1).png" alt="Slide 5">
+        </div>
+
+        <div class="slide">
+            <img src="Frame 6.png" alt="Slide 6">
+        </div>
+
+    </div>
+
+    <div class="keyboard-tip">操作指南：支持鼠标点击按钮或按键盘 [ ← ] [ → ] / [ 空格键 ] 翻页</div>
+
+    <div class="slide-counter">
+        <span id="current-page">1</span> / <span id="total-pages">6</span>
+    </div>
+
+    <div class="controls">
+        <button class="btn" id="prev-btn" disabled>PREV</button>
+        <button class="btn" id="next-btn">NEXT</button>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const slides = document.querySelectorAll('.slide');
+            const prevBtn = document.getElementById('prev-btn');
+            const nextBtn = document.getElementById('next-btn');
+            const currentPageSpan = document.getElementById('current-page');
+            const totalPagesSpan = document.getElementById('total-pages');
+            
+            let currentIndex = 0;
+            const totalSlides = slides.length;
+            totalPagesSpan.textContent = totalSlides;
+
+            // 调整此处：1.5秒（1500毫秒）后开场动画瞬间切换隐藏，不进行任何渐隐
+            setTimeout(function() {
+                const splash = document.getElementById('splash-screen');
+                if(splash) splash.classList.add('fade-out');
+                
+                // 【核心新增】开场动画切掉的瞬间，才给第一页加上 active 类名，从而完美触发 PNG 渐显动画
+                const firstSlide = document.getElementById('first-slide');
+                if(firstSlide) firstSlide.classList.add('active');
+            }, 1500);
+
+            // PPT 翻页核心逻辑
+            function updateSlides(index) {
+                slides.forEach((slide, i) => {
+                    if (i === index) {
+                        slide.classList.add('active');
+                    } else {
+                        slide.classList.remove('active');
+                    }
+                });
+                currentPageSpan.textContent = index + 1;
+                prevBtn.disabled = (index === 0);
+                nextBtn.disabled = (index === totalSlides - 1);
+            }
+
+            function navigateNext() {
+                if (currentIndex < totalSlides - 1) {
+                    currentIndex++;
+                    updateSlides(currentIndex);
+                }
+            }
+
+            function navigatePrev() {
+                if (currentIndex > 0) {
+                    currentIndex--;
+                    updateSlides(currentIndex);
+                }
+            }
+
+            nextBtn.addEventListener('click', navigateNext);
+            prevBtn.addEventListener('click', navigatePrev);
+
+            // 键盘与空格键完美绑定
+            document.addEventListener('keydown', function(event) {
+                if (event.key === 'ArrowRight' || event.key === ' ' || event.key === 'Spacebar') {
+                    event.preventDefault(); 
+                    navigateNext();
+                } else if (event.key === 'ArrowLeft') {
+                    event.preventDefault();
+                    navigatePrev();
+                }
+            });
+        });
+    </script>
+</body>
+</html>
